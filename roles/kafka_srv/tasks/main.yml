@@ -1,0 +1,59 @@
+- name: Add java repo
+  apt_repository:
+    repo: 'ppa:webupd8team/java'
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == "16.04"
+
+- name: Automatically select the Oracle License
+  shell: echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
+
+- name: update cache & install jdk
+  apt:
+    name: oracle-java8-installer
+    state: latest
+    update_cache: yes
+  
+- name: install zookeeperd
+  apt:
+    name: 'zookeeperd'
+    state: latest
+
+- name: addd kafka user
+  user:
+    name: kafka
+
+- name: mkdir for kafka
+  file: 
+    path: /opt/kafka 
+    state: directory
+    owner: kafka
+
+- name: dl kafka
+  get_url:
+    url: http://www-us.apache.org/dist/kafka/1.0.0/kafka_2.12-1.0.0.tgz
+    dest: /opt/kafka_.tgz
+
+- name: unpack kafka
+  shell: tar -xvf /opt/kafka_.tgz -C /opt/
+
+- name: mv files
+  shell: mv /opt/kafka_2.12-1.0.0/* /opt/kafka/
+
+- name: purge tar & temp dir
+  shell: rm -rf /opt/kafka_*
+
+- name: change perms
+  file:
+    path: /opt/kafka/
+    owner: kafka
+
+
+- name: copy kafka.service
+  copy:
+    src: kafka.service
+    dest: /etc/systemd/system/kafka.service 
+
+- name: start kafka service
+  systemd:
+    state: started
+    name: kafka
+
